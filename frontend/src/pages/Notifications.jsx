@@ -11,7 +11,7 @@ const Notification = () => {
   const fetchNotifications = useCallback(async () => {
     try {
       const res = await fetch(
-        "https://campus-track-lost-and-found-5.onrender.com/api/notifications/my",
+        "http://localhost:9090/api/notifications/my",
         {
           credentials: "include",
         }
@@ -92,7 +92,7 @@ const Notification = () => {
                   className="mark-btn"
                   onClick={async () => {
                     await fetch(
-                      `https://campus-track-lost-and-found-3.onrender.com/api/notifications/read/${n.id}`,
+                      `http://localhost:9090/api/notifications/read/${n.id}`,
                       {
                         method: "PUT",
                         credentials: "include",

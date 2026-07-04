@@ -11,7 +11,7 @@ const AdminSidebarLayout = () => {
   const basePath = "/admin-dashboard"; // base path for admin routes
 
   React.useEffect(() => {
-    fetch("https://campus-track-lost-and-found-5.onrender.com/api/admin/me", { credentials: "include" })
+    fetch("http://localhost:9090/api/admin/me", { credentials: "include" })
       .then(res => {
         if (!res.ok) {
           navigate("/admin-login");
@@ -25,7 +25,7 @@ const AdminSidebarLayout = () => {
 
   const logout = async () => {
     try {
-      await fetch("https://campus-track-lost-and-found-3.onrender.com/api/admin/logout", { method: "POST", credentials: "include" });
+      await fetch("http://localhost:9090/api/admin/logout", { method: "POST", credentials: "include" });
     } catch (e) {
       console.error(e);
     }
