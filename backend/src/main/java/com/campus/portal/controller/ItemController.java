@@ -1,7 +1,8 @@
 package com.campus.portal.controller;
+
 import java.util.List;
+
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,11 +21,9 @@ import com.campus.portal.repository.UserRepository;
 import com.campus.portal.service.ItemService;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 
 @RestController
 @RequestMapping("/api/items")
-
 public class ItemController {
 
     private final ItemService service;
@@ -47,24 +46,20 @@ public class ItemController {
             @RequestParam(required = false) String tags,
             @RequestParam String phone,
             @RequestPart(value = "image", required = false) MultipartFile image,
-            HttpServletRequest request
-    ) {
+            HttpServletRequest request) {
         try {
-            // ✅ Use userId from JWT Filter
             Long userId = (Long) request.getAttribute("userId");
 
             if (userId == null) {
                 return ResponseEntity.status(401).body("User not logged in");
             }
 
-            // ✅ Fetch user from DB
             User loggedInUser = userRepository.findById(userId).orElse(null);
 
             if (loggedInUser == null) {
                 return ResponseEntity.status(404).body("User not found");
             }
 
-            // ✅ Parse date
             java.time.LocalDate parsedDate;
             try {
                 parsedDate = java.time.LocalDate.parse(date);
@@ -72,7 +67,6 @@ public class ItemController {
                 return ResponseEntity.badRequest().body("Invalid date format (yyyy-MM-dd)");
             }
 
-            // ✅ Create item
             Item item = new Item();
             item.setType(type.toLowerCase());
             item.setItemName(itemName);
@@ -82,11 +76,8 @@ public class ItemController {
             item.setDate(parsedDate);
             item.setTags(tags != null ? tags.trim() : null);
             item.setPhone(phone);
-
             item.setStatus("PENDING");
             item.setItemStatus("ACTIVE");
-
-            // 🔥 Link user
             item.setUser(loggedInUser);
 
             Item saved = service.save(item, image);
@@ -101,16 +92,17 @@ public class ItemController {
     }
 
     // ================= APPROVED ITEMS =================
- @GetMapping("/approved")
-public ResponseEntity<?> getApprovedItems() {
-    try {
-        return ResponseEntity.ok(service.getItemsByStatusDTO("APPROVED"));
-    } catch (Exception e) {
-        e.printStackTrace();
-        return ResponseEntity.status(500)
-                .body("Error fetching approved items");
+    @GetMapping("/approved")
+    public ResponseEntity<?> getApprovedItems() {
+        try {
+            return ResponseEntity.ok(service.getItemsByStatusDTO("APPROVED"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500)
+                    .body("Error fetching approved items");
+        }
     }
-}
+
     // ================= PENDING ITEMS =================
     @GetMapping("/pending")
     public ResponseEntity<?> getPendingItems() {
@@ -149,9 +141,9 @@ public ResponseEntity<?> getApprovedItems() {
         }
     }
 
-    // ================= RESOLVE MATCH =================
+    // ================= RESOLVE ITEM =================
     @PutMapping("/resolve/{id}")
-    public ResponseEntity<?> resolveMatch(@PathVariable Long id) {
+    public ResponseEntity<?> resolveItem(@PathVariable Long id) {
         try {
             service.resolveMatch(id);
             return ResponseEntity.ok("RESOLVED");
@@ -162,7 +154,7 @@ public ResponseEntity<?> getApprovedItems() {
         }
     }
 
-    // ================= UPDATE STATUS =================
+    // ================= UPDATE ITEM STATUS =================
     @PutMapping("/item-status/{id}")
     public ResponseEntity<?> updateItemStatus(
             @PathVariable Long id,
@@ -177,7 +169,7 @@ public ResponseEntity<?> getApprovedItems() {
         }
     }
 
-    // ================= DELETE =================
+    // ================= DELETE ITEM =================
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteItem(@PathVariable Long id) {
         try {
@@ -190,61 +182,45 @@ public ResponseEntity<?> getApprovedItems() {
         }
     }
 
-    // ================= RESOLVE =================
-    @PutMapping("/resolve/{id}")
-    public ResponseEntity<?> resolveItem(@PathVariable Long id) {
+    // ================= MY POSTS =================
+    @GetMapping("/my-posts")
+    public ResponseEntity<?> getMyPosts(HttpServletRequest request) {
         try {
-            service.resolveMatch(id);
-            return ResponseEntity.ok("RESOLVED");
+            Long userId = (Long) request.getAttribute("userId");
+
+            if (userId == null) {
+                return ResponseEntity.status(401).body("Not logged in");
+            }
+
+            return ResponseEntity.ok(service.getItemsByUserId(userId));
+
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500)
-                    .body("Error resolving item");
+            return ResponseEntity.status(500).body("Error fetching my posts");
         }
     }
 
-    // ================= MY POSTS =================
-@GetMapping("/my-posts")
-public ResponseEntity<?> getMyPosts(HttpServletRequest request) {
-    try {
-        Long userId = (Long) request.getAttribute("userId");
+    // ================= MATCHES =================
+    @GetMapping("/matches")
+    public ResponseEntity<?> getMatches(HttpServletRequest request) {
+        try {
+            Long userId = (Long) request.getAttribute("userId");
 
-        if (userId == null) {
-            return ResponseEntity.status(401).body("Not logged in");
+            if (userId == null) {
+                return ResponseEntity.status(401).body("User not logged in");
+            }
+
+            System.out.println("USER ID: " + userId);
+
+            List<ItemDTO> matches = service.findMatchesForUser(userId);
+
+            System.out.println("MATCHES SIZE: " + matches.size());
+
+            return ResponseEntity.ok(matches);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Error fetching matches");
         }
-
-        return ResponseEntity.ok(service.getItemsByUserId(userId));
-
-    } catch (Exception e) {
-        return ResponseEntity.status(500).body("Error");
     }
-}
-
-@GetMapping("/matches")
-public ResponseEntity<?> getMatches(HttpServletRequest request) {
-
-    try {
-        // ❌ No userId in request
-        Long userId = (Long) request.getAttribute("userId");
-        if (userId == null) {
-            return ResponseEntity.status(401).body("User not logged in");
-        }
-
-        // ✅ Debug (important)
-        System.out.println("USER ID: " + userId);
-
-        List<ItemDTO> matches = service.findMatchesForUser(userId);
-
-        System.out.println("MATCHES SIZE: " + matches.size());
-
-        return ResponseEntity.ok(matches);
-
-    } catch (Exception e) {
-        e.printStackTrace();
-        return ResponseEntity.status(500).body("Error fetching matches");
-    }
-}
-
-
-
 }
